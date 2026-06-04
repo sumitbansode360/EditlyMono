@@ -3,13 +3,15 @@ from rest_framework import status
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, ResetPasswordSerializer
 from .models import User
-from .utils import account_activation_token
+from .utils import account_activation_token, password_reset_token
 from .tasks import send_email_task
 from django.conf import settings
 
 from rest_framework.views import APIView
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 
 class RegisterView(APIView):
@@ -46,10 +48,7 @@ class RegisterView(APIView):
             )
 
             return Response({
-                "message": (
-                    "Account created successfully. "
-                    "Please check your email to activate account."
-                ),
+                "message": "Account created successfully. Please check your email to activate your account.",
                 "email": user.email,
             }, status=status.HTTP_201_CREATED)
         
@@ -68,51 +67,128 @@ class ActivateAccountView(APIView):
         if user is not None and account_activation_token.check_token(user, token):
             user.is_active = True
             user.save()
-            return Response({"message": "Account activated successfully. Redirecting to login page."}, status=status.HTTP_200_OK)
+            return Response({"message": "Account activated successfully. Redirecting you to the login page."}, status=status.HTTP_200_OK)
         
-        return Response({"message": "Invalid activation link."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "This activation link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
 
 class ResendActivationEmailView(APIView):
 
     def post(self, request):
 
         email = request.data.get('email')
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({"message": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-        
-        if user.is_active:
-            return Response({"message": "Account is already activated."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = account_activation_token.make_token(user)
-        activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}"
+        user = User.objects.filter(email=email, is_active=False).first()
 
-        message = f"""
-        Hello {user.first_name},
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = account_activation_token.make_token(user)
+            activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}"
 
-        You recently requested a new account activation link.
+            message = f"""
+            Hello {user.first_name},
 
-        Please click the link below to activate your account:
+            You recently requested a new account activation link.
 
-        {activation_link}
+            Please click the link below to activate your account:
 
-        If you did not request this email, you can safely ignore it.
+            {activation_link}
 
-        Regards,
-        Editly Team
-        """
+            If you did not request this email, you can safely ignore it.
 
-        # send email 
-        send_email_task.delay(
-            user.email, 
-            "New Activation Link for Your Editly Account", 
-            message
-        )
+            Regards,
+            Editly Team
+            """
+
+            # send email 
+            send_email_task.delay(
+                user.email, 
+                "New Activation Link for Your Editly Account", 
+                message
+            )
 
         return Response({
             "message": (
-                "Activation email resent successfully"
+                "If an account with that email exists, a password reset link has been sent."
             ),
         }, status=status.HTTP_201_CREATED)
+
+class ForgotPasswordView(APIView):
+
+    def post(self, request):
+        email = request.data.get('email')
+
+        user = User.objects.filter(
+            email=email,
+            is_active=True).first()
+
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = password_reset_token.make_token(user)
+            reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
+
+            message = f"""Hello {user.first_name},
+
+            We received a request to reset your password.
+
+            Please click the link below to reset your password:
+
+            {reset_link}
+
+            If you did not request this email, you can safely ignore it.
+
+            Regards,
+            Editly Team
+            """
+
+            # send email 
+            send_email_task.delay(
+                user.email, 
+                "Reset Your Password", 
+                message
+            )
+        
+        return Response({
+            "message": 
+            "If an account with that email exists, a password reset link has been sent."
+            }, status=status.HTTP_200_OK)
+    
+class ResetPasswordView(APIView):
+
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request, uidb64, token):
+
+        serializer = self.serializer_class(data=request.data)
+
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+
+        except (
+            TypeError,
+            ValueError,
+            OverflowError,
+            User.DoesNotExist
+        ):
+            user = None
+
+        if (
+            user is not None
+            and user.is_active
+            and password_reset_token.check_token(user, token)
+        ):
+            user.set_password(
+                serializer.validated_data["new_password"]
+            )
+            user.save()
+
+            return Response(
+                {"message": "Your password has been reset successfully. You can now log in with your new password."},
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            {"message": "This password reset link is invalid or has expired. Please request a new one."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
