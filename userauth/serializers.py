@@ -2,7 +2,36 @@ from rest_framework import serializers
 from .models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        token["email"] = user.email
+        token["first_name"] = user.first_name
+
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        data["user"] = {
+            "id": str(self.user.id),
+            "email": self.user.email,
+            "first_name": self.user.first_name,
+            "last_name": self.user.last_name,
+            "profile_pic": (
+                self.user.profile_pic.url
+                if self.user.profile_pic
+                else None
+            ),
+        }
+
+        return data
 
 class RegisterSerializer(serializers.ModelSerializer):
 

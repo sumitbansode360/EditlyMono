@@ -12,7 +12,12 @@ from django.conf import settings
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
 
+
+class LoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 class RegisterView(APIView):
 
