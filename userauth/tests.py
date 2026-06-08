@@ -1,3 +1,4 @@
+import uuid
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -24,7 +25,7 @@ class UserAuthTests(APITestCase):
             "last_name": "Doe"
         }
 
-    @patch('userauth.views.send_email_task.delay')
+    @patch('userauth.views.send_activation_email')
     def test_register_user_success(self, mock_send_email):
         """Test successful registration and email task trigger."""
         response = self.client.post(self.register_url, self.valid_user_data)
@@ -71,25 +72,25 @@ class UserAuthTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch('userauth.views.send_email_task.delay')
+    @patch('userauth.views.send_reactivation_email')
     def test_resend_activation_email_success(self, mock_send_email):
         """Test resending activation email for an inactive user."""
         user = User.objects.create_user(**self.valid_user_data, is_active=False)
         response = self.client.post(self.resend_activation_url, {"email": user.email})
         
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_send_email.assert_called_once()
 
-    @patch('userauth.views.send_email_task.delay')
+    @patch('userauth.views.send_reactivation_email')
     def test_resend_activation_email_not_sent_for_active_user(self, mock_send_email):
         """Test that activation email is NOT sent if user is already active."""
         user = User.objects.create_user(**self.valid_user_data, is_active=True)
         response = self.client.post(self.resend_activation_url, {"email": user.email})
         
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_send_email.assert_not_called()
 
-    @patch('userauth.views.send_email_task.delay')
+    @patch('userauth.views.send_password_reset_email')
     def test_forgot_password_success(self, mock_send_email):
         """Test forgot password triggers email for active users."""
         user = User.objects.create_user(**self.valid_user_data, is_active=True)
@@ -98,7 +99,7 @@ class UserAuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_send_email.assert_called_once()
 
-    @patch('userauth.views.send_email_task.delay')
+    @patch('userauth.views.send_password_reset_email')
     def test_forgot_password_generic_response_if_user_not_found(self, mock_send_email):
         """Test that forgot password returns 200 even if email doesn't exist for security."""
         response = self.client.post(self.forgot_password_url, {"email": "nonexistent@example.com"})
@@ -157,3 +158,52 @@ class UserAuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # The view specifically checks for user.is_active
         self.assertEqual(response.data['message'], "This password reset link is invalid or has expired. Please request a new one.")
+
+    @patch('userauth.views.send_updated_account_activation_email')
+    def test_update_pending_user_success(self, mock_send_email):
+        """Test that a newly registered but inactive user can update their info."""
+        user = User.objects.create_user(
+            username="wrong@example.com",
+            email="wrong@example.com",
+            password="OldPassword123!",
+            first_name="Wrong",
+            last_name="Info",
+            is_active=False
+        )
+        url = reverse('update-pending-user', kwargs={'user_id': user.id})
+        
+        updated_data = {
+            "email": "correct@example.com",
+            "first_name": "Correct",
+            "last_name": "Info",
+            "password": "NewSecurePassword123!"
+        }
+        
+        response = self.client.patch(url, updated_data)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertEqual(user.email, "correct@example.com")
+        self.assertEqual(user.username, "correct@example.com")
+        self.assertEqual(user.first_name, "Correct")
+        self.assertTrue(user.check_password("NewSecurePassword123!"))
+        mock_send_email.assert_called_once()
+
+    def test_update_pending_user_not_found_or_active(self):
+        """Test update fails if user doesn't exist or is already active."""
+        # Test with non-existent UUID
+        url = reverse('update-pending-user', kwargs={'user_id': uuid.uuid4()})
+        data = {
+            "email": "test@example.com",
+            "first_name": "Test",
+            "last_name": "User",
+            "password": "Password123!"
+        }
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # Test with an already active user
+        user = User.objects.create_user(**self.valid_user_data, is_active=True)
+        url = reverse('update-pending-user', kwargs={'user_id': user.id})
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

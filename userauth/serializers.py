@@ -73,4 +73,8 @@ class ResetPasswordSerializer(serializers.Serializer):
 
         return value
 
-    
+class PendingUserUpdateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    password = serializers.CharField(write_only=True)
