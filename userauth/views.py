@@ -74,6 +74,11 @@ class ResendActivationEmailView(APIView):
         user = User.objects.filter(email=email, is_active=False).first()
 
         if user:
+            if not user.can_receive_activation_email():
+                return Response(
+                    {"message": "You've reached the daily limit for activation emails. Please try again tomorrow."},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
             send_reactivation_email(user)
 
         return Response(
@@ -137,6 +142,12 @@ class UpdatePendingUserAPIView(APIView):
             return Response(
                 {"message": "User not found."},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        if not user.can_receive_activation_email():
+            return Response(
+                {"message": "You've reached the daily limit for activation emails. Please try again tomorrow."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
         user.email = serializer.validated_data["email"]

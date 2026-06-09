@@ -47,7 +47,7 @@ def send_activation_email(user) -> None:
         "Activate Your Editly Account",
         message,
     )
-
+    user.record_activation_email_sent()  # ← count the registration email
 
 def send_reactivation_email(user) -> None:
     """Send a fresh activation link to a user who requested a resend."""
@@ -74,6 +74,8 @@ def send_reactivation_email(user) -> None:
         "New Activation Link for Your Editly Account",
         message,
     )
+    user.record_activation_email_sent()  # ← count the resend
+
 
 
 def send_updated_account_activation_email(user) -> None:
@@ -101,6 +103,8 @@ def send_updated_account_activation_email(user) -> None:
         "Activate Your Editly Account",
         message,
     )
+    user.record_activation_email_sent()  # ← count the update email
+
 
 
 def send_password_reset_email(user) -> None:
