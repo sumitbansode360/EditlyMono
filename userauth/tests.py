@@ -18,6 +18,7 @@ class UserAuthTests(APITestCase):
         self.forgot_password_url = reverse('forgot-password')
         self.login_url = reverse('login')
         self.logout_url = reverse('logout')
+        self.me_url = reverse('user-me')
         
         self.valid_user_data = {
             "username": "testuser",
@@ -257,3 +258,24 @@ class UserAuthTests(APITestCase):
         response = self.client.post(self.logout_url, {})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["detail"], "Refresh token is required.")
+
+    def test_get_me_success(self):
+        """Test fetching the current authenticated user's details."""
+        user = User.objects.create_user(**self.valid_user_data, is_active=True)
+        login_res = self.client.post(self.login_url, {
+            "username": self.valid_user_data["username"],
+            "password": self.valid_user_data["password"]
+        })
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_res.data['access']}")
+
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], str(user.id))
+        self.assertEqual(response.data['email'], user.email)
+        self.assertEqual(response.data['first_name'], user.first_name)
+        self.assertEqual(response.data['last_name'], user.last_name)
+
+    def test_get_me_unauthorized(self):
+        """Test that unauthenticated requests to /me/ are blocked."""
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

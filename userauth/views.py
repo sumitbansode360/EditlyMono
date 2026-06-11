@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import (
     RegisterSerializer,
     ResetPasswordSerializer,
+    UserSerializer,
     CustomTokenObtainPairSerializer,
     PendingUserUpdateSerializer,
 )
@@ -25,6 +26,13 @@ from rest_framework.permissions import IsAuthenticated
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class UserMeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
