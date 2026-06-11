@@ -16,6 +16,8 @@ class UserAuthTests(APITestCase):
         self.register_url = reverse('register')
         self.resend_activation_url = reverse('resend-activation-email')
         self.forgot_password_url = reverse('forgot-password')
+        self.login_url = reverse('login')
+        self.logout_url = reverse('logout')
         
         self.valid_user_data = {
             "username": "testuser",
@@ -207,3 +209,51 @@ class UserAuthTests(APITestCase):
         url = reverse('update-pending-user', kwargs={'user_id': user.id})
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_login_success(self):
+        """Test that an active user can log in and receive tokens."""
+        user = User.objects.create_user(**self.valid_user_data, is_active=True)
+        response = self.client.post(self.login_url, {
+            "username": self.valid_user_data["username"],
+            "password": self.valid_user_data["password"]
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['email'], user.email)
+
+    def test_logout_success(self):
+        """Test successful logout by blacklisting the refresh token."""
+        user = User.objects.create_user(**self.valid_user_data, is_active=True)
+        
+        # Perform login to obtain tokens
+        login_res = self.client.post(self.login_url, {
+            "username": self.valid_user_data["username"],
+            "password": self.valid_user_data["password"]
+        })
+        access_token = login_res.data['access']
+        refresh_token = login_res.data['refresh']
+
+        # Authorize and attempt logout
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.post(self.logout_url, {"refresh": refresh_token})
+        
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+    def test_logout_unauthorized(self):
+        """Test logout fails if the user is not authenticated."""
+        response = self.client.post(self.logout_url, {"refresh": "dummy-token"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_missing_refresh_token(self):
+        """Test logout fails if the refresh token is missing."""
+        user = User.objects.create_user(**self.valid_user_data, is_active=True)
+        login_res = self.client.post(self.login_url, {
+            "username": self.valid_user_data["username"],
+            "password": self.valid_user_data["password"]
+        })
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_res.data['access']}")
+        
+        response = self.client.post(self.logout_url, {})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "Refresh token is required.")
