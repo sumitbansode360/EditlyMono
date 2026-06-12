@@ -15,7 +15,7 @@ class User(AbstractUser):
     activation_email_count = models.PositiveIntegerField(default=0)
     activation_email_count_date = models.DateField(null=True, blank=True)
 
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['first_name', 'last_name', "email"]
 
     def __str__(self):
         return self.email
