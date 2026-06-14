@@ -27,7 +27,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),    
     path('api/token/', LoginView.as_view(), name='login'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/auth/', include('userauth.urls'))
+    path('api/auth/', include('userauth.urls')),
+    path('api/', include('document.urls')),
 ]
 
 if settings.DEBUG:
