@@ -52,6 +52,19 @@ class DocumentViewSetTests(APITestCase):
         # Verify we can extract the ID for the frontend redirect
         self.assertTrue(len(str(response.data['id'])) > 0)
 
+    def test_create_document_reuses_empty_draft(self):
+        """Requirement: Avoid clutter by reusing existing untitled/empty documents."""
+        self.client.force_authenticate(user=self.user1)
+        
+        # Create the first one
+        res1 = self.client.post(self.list_url, {}, format='json')
+        # Create a second one without editing the first
+        res2 = self.client.post(self.list_url, {}, format='json')
+
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        self.assertEqual(res1.data['id'], res2.data['id'])
+        self.assertEqual(Document.objects.filter(owner=self.user1).count(), 2) # doc1 (from setup) + 1 new draft
+
     def get_detail_url(self, pk):
         return reverse('documents-detail', kwargs={'pk': pk})
 

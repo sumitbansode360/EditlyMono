@@ -22,6 +22,24 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
 
     def create(self, request, *args, **kwargs):
+        # Logic to avoid "Untitled Document" clutter:
+        # If the user already has a document with the default title and empty content, reuse it.
+        existing_empty_doc = (
+            Document.objects.filter(
+                owner=self.request.user,
+                title="Untitled Document",
+                content={}
+            ).first()
+        )
+
+        if existing_empty_doc:
+            serializer = self.get_serializer(existing_empty_doc)
+            return Response({
+                "message": "Reusing existing empty document",
+                "id": existing_empty_doc.id,
+                "data": serializer.data,
+            }, status=status.HTTP_200_OK)
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
