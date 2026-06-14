@@ -1,4 +1,5 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Document
@@ -16,8 +17,23 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             Document.objects
-            .filter(owner=self.request.user)
+            .filter(owner=self.request.user).select_related("owner")
             .order_by("-updated_at")
+        )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                "message": "Document created successfully",
+                "id": serializer.data.get("id"),
+                "data": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers,
         )
 
     def perform_create(self, serializer):

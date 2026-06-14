@@ -40,6 +40,18 @@ class DocumentViewSetTests(APITestCase):
         # Standard router generated URLs
         self.list_url = reverse('documents-list')
 
+    def test_create_document_returns_id_for_redirect(self):
+        """Requirement: POST response should return the new document's ID."""
+        self.client.force_authenticate(user=self.user1)
+        data = {"title": "New Doc", "content": {}}
+        response = self.client.post(self.list_url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('id', response.data)
+        self.assertEqual(response.data['message'], "Document created successfully")
+        # Verify we can extract the ID for the frontend redirect
+        self.assertTrue(len(str(response.data['id'])) > 0)
+
     def get_detail_url(self, pk):
         return reverse('documents-detail', kwargs={'pk': pk})
 
