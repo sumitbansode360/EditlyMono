@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
     # Internal
@@ -138,11 +139,22 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'userauth.User'
 
 REST_FRAMEWORK = {
-    
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Editly API',
+    'DESCRIPTION': 'REST API for Editly — authentication, user management, and document editing.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'TAGS': [
+        {'name': 'Authentication', 'description': 'Login, token refresh, and logout.'},
+        {'name': 'Users', 'description': 'Registration, account activation, and profile.'},
+        {'name': 'Documents', 'description': 'Create, read, update, and delete documents.'},
+    ],
 }
 
 #Frontend url 

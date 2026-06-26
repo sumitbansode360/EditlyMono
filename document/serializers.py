@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from .models import Document
 from django.contrib.auth import get_user_model
 
@@ -27,6 +28,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    @extend_schema_field(serializers.CharField())
     def get_owner_name(self, obj):
         return f"{obj.owner.first_name} {obj.owner.last_name}"
 
@@ -47,6 +49,7 @@ class DocumentListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(serializers.CharField())
     def get_owner_name(self, obj):
         return f"{obj.owner.first_name} {obj.owner.last_name}"
     

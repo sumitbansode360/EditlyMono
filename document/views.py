@@ -1,11 +1,56 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from .models import Document
 from .serializers import DocumentSerializer, DocumentListSerializer
+from .schemas import DocumentCreateResponseSerializer
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Documents'],
+        summary='List documents',
+        description='Returns all documents owned by the authenticated user.',
+        responses={200: DocumentListSerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        tags=['Documents'],
+        summary='Retrieve a document',
+        parameters=[
+            OpenApiParameter('id', OpenApiTypes.UUID, OpenApiParameter.PATH, description='Document ID.'),
+        ],
+        responses={200: DocumentSerializer},
+    ),
+    update=extend_schema(
+        tags=['Documents'],
+        summary='Replace a document',
+        parameters=[
+            OpenApiParameter('id', OpenApiTypes.UUID, OpenApiParameter.PATH, description='Document ID.'),
+        ],
+        request=DocumentSerializer,
+        responses={200: DocumentSerializer},
+    ),
+    partial_update=extend_schema(
+        tags=['Documents'],
+        summary='Partially update a document',
+        parameters=[
+            OpenApiParameter('id', OpenApiTypes.UUID, OpenApiParameter.PATH, description='Document ID.'),
+        ],
+        request=DocumentSerializer,
+        responses={200: DocumentSerializer},
+    ),
+    destroy=extend_schema(
+        tags=['Documents'],
+        summary='Delete a document',
+        parameters=[
+            OpenApiParameter('id', OpenApiTypes.UUID, OpenApiParameter.PATH, description='Document ID.'),
+        ],
+        responses={204: None},
+    ),
+)
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -21,6 +66,19 @@ class DocumentViewSet(viewsets.ModelViewSet):
             .order_by("-updated_at")
         )
 
+    @extend_schema(
+        tags=['Documents'],
+        summary='Create a document',
+        description=(
+            'Creates a new document. If the user already has an empty '
+            '"Untitled Document", that document is reused instead.'
+        ),
+        request=DocumentSerializer,
+        responses={
+            200: DocumentCreateResponseSerializer,
+            201: DocumentCreateResponseSerializer,
+        },
+    )
     def create(self, request, *args, **kwargs):
         # Logic to avoid "Untitled Document" clutter:
         # If the user already has a document with the default title and empty content, reuse it.
@@ -36,7 +94,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(existing_empty_doc)
             return Response({
                 "message": "Reusing existing empty document",
-                "id": existing_empty_doc.id,
+                "id": serializer.data["id"],
                 "data": serializer.data,
             }, status=status.HTTP_200_OK)
 

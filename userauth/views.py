@@ -1,7 +1,9 @@
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from .serializers import (
     RegisterSerializer,
@@ -9,6 +11,13 @@ from .serializers import (
     UserSerializer,
     CustomTokenObtainPairSerializer,
     PendingUserUpdateSerializer,
+)
+from .schemas import (
+    EmailRequestSerializer,
+    LogoutRequestSerializer,
+    MessageResponseSerializer,
+    PendingUserUpdateResponseSerializer,
+    RegisterResponseSerializer,
 )
 from .models import User
 from .utils import account_activation_token, password_reset_token
@@ -24,9 +33,30 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.permissions import IsAuthenticated
 
 
+@extend_schema(
+    tags=['Authentication'],
+    summary='Obtain JWT token pair',
+    description='Authenticate with email and password to receive access and refresh tokens.',
+)
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
+
+@extend_schema(
+    tags=['Authentication'],
+    summary='Refresh JWT access token',
+    description='Exchange a valid refresh token for a new access token.',
+)
+class TokenRefreshAPIView(TokenRefreshView):
+    pass
+
+
+@extend_schema(
+    tags=['Users'],
+    summary='Get current user profile',
+    description='Returns the authenticated user profile.',
+    responses={200: UserSerializer},
+)
 class UserMeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -34,6 +64,16 @@ class UserMeView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
+
+@extend_schema(
+    tags=['Authentication'],
+    summary='Logout and blacklist refresh token',
+    request=LogoutRequestSerializer,
+    responses={
+        205: OpenApiResponse(description='Token blacklisted successfully.'),
+        400: MessageResponseSerializer,
+    },
+)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -55,6 +95,17 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
+@extend_schema(
+    tags=['Users'],
+    summary='Register a new account',
+    description='Creates an inactive account and sends an activation email.',
+    request=RegisterSerializer,
+    responses={
+        201: RegisterResponseSerializer,
+        400: OpenApiResponse(description='Validation errors.'),
+    },
+)
 class RegisterView(APIView):
 
     def post(self, request):
@@ -79,6 +130,19 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    tags=['Users'],
+    summary='Activate account',
+    description='Activates a user account using the link sent by email.',
+    parameters=[
+        OpenApiParameter('uidb64', OpenApiTypes.STR, OpenApiParameter.PATH, description='Base64-encoded user ID.'),
+        OpenApiParameter('token', OpenApiTypes.STR, OpenApiParameter.PATH, description='Account activation token.'),
+    ],
+    responses={
+        200: MessageResponseSerializer,
+        400: MessageResponseSerializer,
+    },
+)
 class ActivateAccountView(APIView):
 
     def get(self, request, uidb64, token):
@@ -98,6 +162,16 @@ class ActivateAccountView(APIView):
         )
 
 
+@extend_schema(
+    tags=['Users'],
+    summary='Resend activation email',
+    description='Sends a new activation link for an inactive account.',
+    request=EmailRequestSerializer,
+    responses={
+        200: MessageResponseSerializer,
+        429: MessageResponseSerializer,
+    },
+)
 class ResendActivationEmailView(APIView):
 
     def post(self, request):
@@ -118,6 +192,13 @@ class ResendActivationEmailView(APIView):
         )
 
 
+@extend_schema(
+    tags=['Users'],
+    summary='Request password reset',
+    description='Sends a password reset link to the email address if an active account exists.',
+    request=EmailRequestSerializer,
+    responses={200: MessageResponseSerializer},
+)
 class ForgotPasswordView(APIView):
 
     def post(self, request):
@@ -133,6 +214,20 @@ class ForgotPasswordView(APIView):
         )
 
 
+@extend_schema(
+    tags=['Users'],
+    summary='Reset password',
+    description='Sets a new password using the reset link sent by email.',
+    parameters=[
+        OpenApiParameter('uidb64', OpenApiTypes.STR, OpenApiParameter.PATH, description='Base64-encoded user ID.'),
+        OpenApiParameter('token', OpenApiTypes.STR, OpenApiParameter.PATH, description='Password reset token.'),
+    ],
+    request=ResetPasswordSerializer,
+    responses={
+        200: MessageResponseSerializer,
+        400: MessageResponseSerializer,
+    },
+)
 class ResetPasswordView(APIView):
 
     serializer_class = ResetPasswordSerializer
@@ -161,6 +256,20 @@ class ResetPasswordView(APIView):
         )
 
 
+@extend_schema(
+    tags=['Users'],
+    summary='Update pending user before activation',
+    description='Updates profile details for an inactive account and resends the activation email.',
+    parameters=[
+        OpenApiParameter('user_id', OpenApiTypes.UUID, OpenApiParameter.PATH, description='Pending user ID.'),
+    ],
+    request=PendingUserUpdateSerializer,
+    responses={
+        200: PendingUserUpdateResponseSerializer,
+        404: MessageResponseSerializer,
+        429: MessageResponseSerializer,
+    },
+)
 class UpdatePendingUserAPIView(APIView):
 
     def patch(self, request, user_id):
