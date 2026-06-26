@@ -61,8 +61,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            Document.objects
-            .filter(owner=self.request.user).select_related("owner")
+            # Document.objects
+            # .filter(owner=self.request.user).select_related("owner")
+            # .order_by("-updated_at")
+            Document.objects.all().select_related("owner")
             .order_by("-updated_at")
         )
 
