@@ -32,37 +32,37 @@ def send_collaboration_invitation_email(collaboration) -> None:
         user = collaboration.user
         recipient = user.email
         subject = f'{inviter.first_name} invited you to "{document.title}"'
-        message = f"""Hi {user.first_name},
+        message = f"""
+            Hi {user.first_name},
+            {inviter.first_name} {inviter.last_name} invited you to collaborate on "{document.title}" as {role_label}.
 
-{inviter.first_name} {inviter.last_name} invited you to collaborate on "{document.title}" as {role_label}.
-
-Open it here:
-{_document_link(document.id)}
-"""
+            Open it here:
+            {_document_link(document.id)}
+            """
     elif collaboration.user_id and not collaboration.user.is_active:
         user = collaboration.user
         recipient = user.email
         subject = f'{inviter.first_name} invited you to "{document.title}" — activate your account'
         message = f"""Hi {user.first_name},
 
-{inviter.first_name} {inviter.last_name} invited you to collaborate on "{document.title}" as {role_label}.
+            {inviter.first_name} {inviter.last_name} invited you to collaborate on "{document.title}" as {role_label}.
 
-You already started creating an Editly account with this email address but haven't activated it yet.
-Please check your inbox for the activation link, or request a new one from the login page.
+            You already started creating an Editly account with this email address but haven't activated it yet.
+            Please check your inbox for the activation link, or request a new one from the login page.
 
-Once your account is active, "{document.title}" will appear on your dashboard automatically.
-"""
+            Once your account is active, "{document.title}" will appear on your dashboard automatically.
+            """
     else:
         recipient = collaboration.invited_email
         subject = f'{inviter.first_name} invited you to collaborate on "{document.title}"'
         message = f"""Hi,
 
-{inviter.first_name} {inviter.last_name} invited you to collaborate on "{document.title}" as {role_label}.
+        {inviter.first_name} {inviter.last_name} invited you to collaborate on "{document.title}" as {role_label}.
 
-Create your free Editly account to get started:
-{_signup_link(collaboration.invited_email)}
+        Create your free Editly account to get started:
+        {_signup_link(collaboration.invited_email)}
 
-Once you sign up and activate your account, this document will automatically appear on your dashboard.
-"""
+        Once you sign up and activate your account, this document will automatically appear on your dashboard.
+        """
 
     send_email_task.delay(recipient, subject, message)
