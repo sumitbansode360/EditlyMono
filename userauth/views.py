@@ -33,6 +33,36 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.permissions import IsAuthenticated
 
 
+def _link_pending_document_invites(user):
+    """
+    Bridges the document-collaboration invite flow into registration.
+
+    If this user's email matches any pending DocumentCollaboration rows
+    that were created for a not-yet-registered invitee, attach this user
+    to those rows now. Import is local to avoid a hard app-loading-order
+    dependency between userauth and document.
+    """
+    from document.models import DocumentCollaboration
+
+    DocumentCollaboration.objects.filter(
+        invited_email__iexact=user.email, user__isnull=True
+    ).update(user=user, invited_email=None)
+
+
+def _activate_pending_collaborations(user):
+    """
+    Flips any of this user's pending collaborations to active once their
+    account is activated, so invited documents appear on their dashboard
+    only once they can actually log in and use them.
+    """
+    from django.utils import timezone
+    from document.models import DocumentCollaboration
+
+    DocumentCollaboration.objects.filter(
+        user=user, status=DocumentCollaboration.Status.PENDING
+    ).update(status=DocumentCollaboration.Status.ACTIVE, accepted_at=timezone.now())
+
+
 @extend_schema(
     tags=['Authentication'],
     summary='Obtain JWT token pair',
@@ -112,6 +142,7 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            _link_pending_document_invites(user)
             send_activation_email(user)
             return Response(
                 {
@@ -151,6 +182,7 @@ class ActivateAccountView(APIView):
         if user is not None and account_activation_token.check_token(user, token):
             user.is_active = True
             user.save()
+            _activate_pending_collaborations(user)
             return Response(
                 {"message": "Account activated successfully. Redirecting you to the login page."},
                 status=status.HTTP_200_OK,
@@ -283,7 +315,7 @@ class UpdatePendingUserAPIView(APIView):
                 {"message": "User not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        
+
         if not user.can_receive_activation_email():
             return Response(
                 {"message": "You've reached the daily limit for activation emails. Please try again tomorrow."},
@@ -311,3 +343,25 @@ class UpdatePendingUserAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@extend_schema(
+    tags=['Users'],
+    summary='Search users by email',
+    description='Search for registered users by email address (partial match).',
+    parameters=[
+        OpenApiParameter('email', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Email to search'),
+    ],
+    responses={200: UserSerializer(many=True)},
+)
+class UserSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        email = request.query_params.get('email', '')
+        users = User.objects.filter(
+            email__icontains=email,
+            is_active=True
+        ).exclude(id=request.user.id)[:10]
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)

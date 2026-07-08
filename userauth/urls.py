@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     RegisterView, ActivateAccountView, ResendActivationEmailView, 
     ForgotPasswordView, ResetPasswordView, UpdatePendingUserAPIView, 
-    LogoutView, UserMeView
+    LogoutView, UserMeView, UserSearchView
 )
 
 urlpatterns = [
@@ -35,4 +35,5 @@ urlpatterns = [
         UpdatePendingUserAPIView.as_view(),
         name="update-pending-user"
     ),
+    path('search/', UserSearchView.as_view(), name='user-search'),
 ]
