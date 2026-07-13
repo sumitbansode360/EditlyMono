@@ -40,6 +40,25 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'first_name', 'last_name', 'profile_pic']
         read_only_fields = fields
 
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    """
+    Writable counterpart to UserSerializer, used only by UserMeView.patch().
+    Email is deliberately excluded — it's tied to login/activation, changing
+    it isn't supported yet. Every field is optional so a PATCH can update
+    just the name, just the picture, or both.
+    """
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'profile_pic']
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+            'profile_pic': {'required': False},
+        }
+
+
 class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -79,6 +98,32 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(e.messages)
 
         return value
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Used by the authenticated "change my password" flow — distinct from
+    ResetPasswordSerializer, which backs the logged-out email-link reset
+    flow and has no concept of a "current password" to verify against.
+    """
+    current_password = serializers.CharField(max_length=128, write_only=True)
+    new_password = serializers.CharField(max_length=128, write_only=True)
+    confirm_password = serializers.CharField(max_length=128, write_only=True)
+
+    def validate(self, data):
+        if data["new_password"] != data["confirm_password"]:
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match."}
+            )
+        return data
+
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
+
 
 class PendingUserUpdateSerializer(serializers.Serializer):
     email = serializers.EmailField()

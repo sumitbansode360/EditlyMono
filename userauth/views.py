@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
@@ -8,7 +9,9 @@ from drf_spectacular.types import OpenApiTypes
 from .serializers import (
     RegisterSerializer,
     ResetPasswordSerializer,
+    ChangePasswordSerializer,
     UserSerializer,
+    UpdateProfileSerializer,
     CustomTokenObtainPairSerializer,
     PendingUserUpdateSerializer,
 )
@@ -89,10 +92,68 @@ class TokenRefreshAPIView(TokenRefreshView):
 )
 class UserMeView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+    @extend_schema(
+        tags=['Users'],
+        summary='Update current user profile',
+        description=(
+            'Updates first name, last name, and/or profile picture for the '
+            'authenticated user. Email is not editable through this endpoint.'
+        ),
+        request=UpdateProfileSerializer,
+        responses={
+            200: UserSerializer,
+            400: OpenApiResponse(description='Validation errors.'),
+        },
+    )
+    def patch(self, request):
+        serializer = UpdateProfileSerializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(request.user).data)
+
+
+@extend_schema(
+    tags=['Users'],
+    summary='Change password',
+    description=(
+        "Changes the authenticated user's password after verifying their "
+        "current password. Distinct from the forgot-password/reset-password "
+        "flow, which is for logged-out users who don't know their current one."
+    ),
+    request=ChangePasswordSerializer,
+    responses={
+        200: MessageResponseSerializer,
+        400: MessageResponseSerializer,
+    },
+)
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not request.user.check_password(serializer.validated_data["current_password"]):
+            return Response(
+                {"message": "Current password is incorrect."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.user.set_password(serializer.validated_data["new_password"])
+        request.user.save()
+
+        return Response(
+            {"message": "Your password has been updated successfully."},
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(
