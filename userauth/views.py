@@ -95,7 +95,7 @@ class UserMeView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={"request": request})
         return Response(serializer.data)
 
     @extend_schema(
@@ -113,11 +113,14 @@ class UserMeView(APIView):
     )
     def patch(self, request):
         serializer = UpdateProfileSerializer(
-            request.user, data=request.data, partial=True
+            request.user,
+            data=request.data,
+            partial=True,
+            context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(request.user, context={"request": request}).data)
 
 
 @extend_schema(

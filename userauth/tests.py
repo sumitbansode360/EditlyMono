@@ -1,3 +1,5 @@
+import base64
+import io
 import uuid
 from django.urls import reverse
 from rest_framework.test import APITestCase
@@ -5,6 +7,8 @@ from rest_framework import status
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from unittest.mock import patch
 from userauth.utils import account_activation_token, password_reset_token
 
@@ -274,6 +278,34 @@ class UserAuthTests(APITestCase):
         self.assertEqual(response.data['email'], user.email)
         self.assertEqual(response.data['first_name'], user.first_name)
         self.assertEqual(response.data['last_name'], user.last_name)
+
+    def test_patch_me_with_profile_image_returns_absolute_media_url(self):
+        """Test that uploading a profile image through /me/ persists the file and returns an absolute URL."""
+        user = User.objects.create_user(**self.valid_user_data, is_active=True)
+        login_res = self.client.post(self.login_url, {
+            "username": self.valid_user_data["username"],
+            "password": self.valid_user_data["password"]
+        })
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_res.data['access']}")
+
+        image_buffer = io.BytesIO()
+        Image.new("RGB", (1, 1), color="red").save(image_buffer, format="PNG")
+        uploaded_image = SimpleUploadedFile(
+            "avatar.png",
+            image_buffer.getvalue(),
+            content_type="image/png",
+        )
+
+        response = self.client.patch(
+            self.me_url,
+            {"profile_pic": uploaded_image},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.profile_pic)
+        self.assertTrue(response.data["profile_pic"].startswith("http://testserver/media/"))
 
     def test_get_me_unauthorized(self):
         """Test that unauthenticated requests to /me/ are blocked."""

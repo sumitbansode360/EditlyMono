@@ -5,7 +5,19 @@ from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+class ProfilePictureUrlMixin:
+    def _get_profile_pic_url(self, obj):
+        if not obj.profile_pic:
+            return None
+
+        url = obj.profile_pic.url
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(url)
+        return url
+
+
+class CustomTokenObtainPairSerializer(ProfilePictureUrlMixin, TokenObtainPairSerializer):
 
     @classmethod
     def get_token(cls, user):
@@ -24,21 +36,21 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "email": self.user.email,
             "first_name": self.user.first_name,
             "last_name": self.user.last_name,
-            "profile_pic": (
-                self.user.profile_pic.url
-                if self.user.profile_pic
-                else None
-            ),
+            "profile_pic": self._get_profile_pic_url(self.user),
         }
 
         return data
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(ProfilePictureUrlMixin, serializers.ModelSerializer):
+    profile_pic = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'email', 'first_name', 'last_name', 'profile_pic']
         read_only_fields = fields
+
+    def get_profile_pic(self, obj):
+        return self._get_profile_pic_url(obj)
 
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
