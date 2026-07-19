@@ -33,8 +33,10 @@ if ENVIRONMENT == "production":
 else:
     DEBUG = True
 
-ALLOWED_HOSTS = ["*"]  # Update this with your allowed hosts in production
-
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost"
+).split(",")  
 
 # Application definition
 
