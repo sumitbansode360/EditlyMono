@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     # Internal
     'userauth',
     'document',
+    'health',
 ]
 
 MIDDLEWARE = [
