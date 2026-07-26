@@ -37,3 +37,7 @@ secrets.json
 # Ignore migrations except __init__.py
 */migrations/*
 !*/migrations/__init__.py
+
+# Django collectstatic output
+staticfiles/
+Backend/staticfiles/
