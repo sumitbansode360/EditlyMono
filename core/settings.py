@@ -32,7 +32,7 @@ DEBUG = ENVIRONMENT != "production"
 
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
-    "localhost"
+    "localhost,backend"
 ).split(",")  
 
 # Application definition
