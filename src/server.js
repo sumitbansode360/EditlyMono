@@ -11,6 +11,45 @@ const pingTimeout = 30000;
 const messageSync = 0;
 const messageAwareness = 1;
 
+// Base URL of the Django API, used to verify that a connecting client
+// actually has access to the document room they're trying to join.
+const DJANGO_API_URL = process.env.DJANGO_API_URL || "http://127.0.0.1:8000";
+
+/**
+ * Pulls the room name (document id) and auth token out of the raw
+ * upgrade request URL, e.g. "/3f2c...-uuid?token=abc123
+ */
+const parseConnInfo = (reqUrl) => {
+    const [pathPart, queryString] = (reqUrl || "/").split("?");
+    const docName = pathPart.slice(1) || "default";
+    const token = new URLSearchParams(queryString || "").get("token");
+    return { docName, token };
+};
+
+/**
+ * Confirms the requesting user has access to this document by asking
+ * Django — the same endpoint the frontend already uses (getDocument),
+ * which is scoped server-side to the document's owner/collaborators.
+ * This is the single source of truth for permissions; we don't
+ * duplicate any role logic here.
+ */
+const verifyDocumentAccess = async (docName, token) => {
+    if (!token) return false;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(`${DJANGO_API_URL}/api/documents/${docName}/`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        return res.ok;
+    } catch (err) {
+        console.error(`[y-ws] auth check failed for room "${docName}":`, err.message);
+        return false;
+    }
+};
+
 /** @type {Map<string, WSSharedDoc>} */
 const docs = new Map();
 
@@ -201,7 +240,20 @@ const server = http.createServer((_req, res) => {
     res.end("y-websocket server is running\n");
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+    server,
+    verifyClient: (info, callback) => {
+        const { docName, token } = parseConnInfo(info.req.url);
+        verifyDocumentAccess(docName, token).then((allowed) => {
+            if (!allowed) {
+                console.log(`[y-ws] rejected connection to room "${docName}" (unauthorized)`);
+                callback(false, 401, "Unauthorized");
+                return;
+            }
+            callback(true);
+        });
+    },
+});
 wss.on("connection", setupWSConnection);
 
 server.listen(port, host, () => {
