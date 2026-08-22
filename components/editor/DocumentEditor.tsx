@@ -15,6 +15,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
+import { PaginationPlus } from "tiptap-pagination-plus";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { Loader2 } from "lucide-react";
@@ -64,6 +65,23 @@ function buildEditorExtensions(
     Typography,
     TaskList,
     TaskItem.configure({ nested: true }),
+    // Visual-only pagination: pure ProseMirror decorations (verified from
+    // source), so it never mutates the doc and stays invisible to the Yjs
+    // collaboration plugin, same constraint the old custom extension was
+    // built around.
+    PaginationPlus.configure({
+      pageHeight: 1056,
+      pageWidth: 816,
+      pageGap: 32,
+      marginTop: 96,
+      marginBottom: 96,
+      marginLeft: 96,
+      marginRight: 96,
+      contentMarginTop: 0,
+      contentMarginBottom: 24,
+      footerRight: "Page {page}",
+      pageBreakBackground: "#f0f4f8", // matches EditorCanvas's outer canvas color
+    }),
   ];
 
   // Before the first-ever sync, the editor runs in plain mode: no Yjs
