@@ -14,6 +14,20 @@
   background: #ffffff;
 }
 
+/* The package always sets cursor:pointer inline on the header/footer,
+   even when no onHeaderClick/onFooterClick is configured — override with
+   !important since inline styles otherwise win. Also shrink+mute the
+   "Page N" label so it reads as a page indicator, not editable content. */
+.rm-with-pagination .rm-page-footer,
+.rm-with-pagination .rm-page-header {
+  cursor: default !important;
+}
+.rm-with-pagination .rm-page-footer-left,
+.rm-with-pagination .rm-page-footer-right {
+  font-size: 0.6875rem;
+  color: #9ca3af;
+}
+
 /* ── Placeholder ── */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

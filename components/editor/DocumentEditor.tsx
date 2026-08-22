@@ -74,11 +74,11 @@ function buildEditorExtensions(
       pageWidth: 816,
       pageGap: 32,
       marginTop: 96,
-      marginBottom: 96,
+      marginBottom: 48,
       marginLeft: 96,
       marginRight: 96,
       contentMarginTop: 0,
-      contentMarginBottom: 24,
+      contentMarginBottom: 12,
       footerRight: "Page {page}",
       pageBreakBackground: "#f0f4f8", // matches EditorCanvas's outer canvas color
     }),
