@@ -66,7 +66,7 @@ export default function EditorMenuBar({ editor }: Props) {
   const editorState = useEditorState({
     editor,
     selector: (ctx) => {
-      if (!ctx.editor) return null;
+      if (!ctx.editor || ctx.editor.isDestroyed) return null;
       const e = ctx.editor;
       return {
         // Inline marks
@@ -96,9 +96,15 @@ export default function EditorMenuBar({ editor }: Props) {
         })(),
         // Font size — read from textStyle mark on current selection
         fontSize: e.getAttributes("textStyle")?.fontSize ?? "12",
-        // Undo/redo availability
-        canUndo: e.can().undo(),
-        canRedo: e.can().redo(),
+        // Undo/redo availability. `undoRedo: false` on StarterKit means no
+        // history extension registers these commands on either the plain
+        // or the live (Yjs) editor instance right now, so `.undo`/`.redo`
+        // can be undefined — and briefly *is* undefined during the
+        // plain-mode -> live-mode editor swap even once a real history
+        // extension is wired in. Guard rather than assume the command
+        // exists.
+        canUndo: e.can().undo?.() ?? false,
+        canRedo: e.can().redo?.() ?? false,
       };
     },
   });
