@@ -42,7 +42,7 @@ type NavbarProps = {
 };
 
 export default function Navbar({
-  appName = "CollabDocs",
+  appName = "Editly",
   user = {
     name: "Guest User",
     isAuthenticated: false,

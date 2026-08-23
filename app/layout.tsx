@@ -14,7 +14,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Your App",
+  title: "Editly",
   description: "Realtime document editor",
 };
 
