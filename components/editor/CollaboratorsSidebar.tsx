@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Sheet,
     SheetContent,
@@ -112,6 +112,7 @@ export default function CollaboratorsSidebar({ users, connected }: Props) {
                         <div className="flex flex-col items-center gap-1.5">
                             {previewUsers.map((u) => (
                                 <Avatar key={u.id} className="h-7 w-7">
+                                    <AvatarImage src={u.profile_pic ?? undefined} alt={u.name} />
                                     <AvatarFallback
                                         className="text-[10px] font-semibold text-white"
                                         style={{ backgroundColor: u.color }}
