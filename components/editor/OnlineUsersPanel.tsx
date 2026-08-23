@@ -31,7 +31,12 @@ export default function OnlineUsersPanel({ users, connected }: Props) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <h2 className="text-sm font-semibold truncate">{users.length} Online now</h2>
+            <h2 className="text-sm font-semibold truncate flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-bold">
+                {users.length}
+              </span>
+              Online now
+            </h2>
           </div>
           <span
             className={`inline-flex items-center gap-1 text-[11px] font-medium ${connected ? "text-emerald-600" : "text-muted-foreground"
