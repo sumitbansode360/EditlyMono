@@ -31,7 +31,7 @@ export default function OnlineUsersPanel({ users, connected }: Props) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <h2 className="text-sm font-semibold truncate">Online now</h2>
+            <h2 className="text-sm font-semibold truncate">{users.length} Online now</h2>
           </div>
           <span
             className={`inline-flex items-center gap-1 text-[11px] font-medium ${connected ? "text-emerald-600" : "text-muted-foreground"
@@ -45,9 +45,6 @@ export default function OnlineUsersPanel({ users, connected }: Props) {
             {connected ? "Live" : "Offline"}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {users.length} {users.length === 1 ? "person" : "people"} editing
-        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -87,7 +84,7 @@ export default function OnlineUsersPanel({ users, connected }: Props) {
                   )}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {onlineUser.isCurrentUser ? "You" : "Editing"}
+                  {onlineUser.isCurrentUser ? "You" : ""}
                 </p>
               </div>
 
