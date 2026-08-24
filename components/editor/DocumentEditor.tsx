@@ -148,7 +148,6 @@ function CollaborativeEditor({
     document.updated_at ? new Date(document.updated_at) : null
   );
   const [isSaving, setIsSaving] = useState(false);
-  const hasSeededContent = useRef(false);
 
   // Fail closed: if `role` is ever missing/unrecognized, treat the document
   // as read-only rather than editable. The backend already gates who can
@@ -194,19 +193,35 @@ function CollaborativeEditor({
           setFallbackContent(updatedEditor.getJSON());
         }
       },
+      // Seeds a freshly-created live editor from the last-saved (REST)
+      // content when the Yjs doc it's bound to is empty — this is what
+      // repopulates a brand-new in-memory Yjs room (e.g. after everyone
+      // left and the ws server dropped it — see server.js, `docs` is an
+      // in-memory Map with no persistence) from the DB copy.
+      //
+      // This lives in onCreate, tied to *this* editor instance, rather
+      // than a useEffect + "seeded once" ref keyed off `synced`. `editor`
+      // (from useEditor) and `synced`/`isLive` (from the websocket
+      // provider) update via independent state changes, so a ref-guarded
+      // effect can fire once against the *old* plain editor the moment
+      // `synced` flips true — before useEditor has recreated the real
+      // Yjs-bound instance — which consumes the "seed once" guard on an
+      // editor that didn't need seeding (it already has fallbackContent
+      // via the `content` option) and leaves the real, empty editor never
+      // seeded. onCreate can't hit that race: it only ever runs once, on
+      // the actual instance it's attached to.
+      onCreate: ({ editor: createdEditor }) => {
+        if (
+          isLive &&
+          createdEditor.isEmpty &&
+          !isTipTapContentEmpty(fallbackContent)
+        ) {
+          createdEditor.commands.setContent(fallbackContent);
+        }
+      },
     },
     [isLive, provider, collaborationUser, ydoc]
   );
-
-  useEffect(() => {
-    if (!editor || !synced || hasSeededContent.current) return;
-
-    if (editor.isEmpty && !isTipTapContentEmpty(fallbackContent)) {
-      editor.commands.setContent(fallbackContent);
-    }
-
-    hasSeededContent.current = true;
-  }, [editor, synced, fallbackContent]);
 
   // Quiet status toasts — only on genuine transitions, never on first
   // connect (that one's just the normal startup and doesn't need a toast).
