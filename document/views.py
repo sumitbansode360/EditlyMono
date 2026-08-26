@@ -15,6 +15,7 @@ from .serializers import (
 )
 from .schemas import DocumentCreateResponseSerializer
 from .helpers import send_collaboration_invitation_email
+from .paginators import DocumentPagination
 
 User = get_user_model()
 
@@ -23,7 +24,11 @@ User = get_user_model()
     list=extend_schema(
         tags=['Documents'],
         summary='List documents',
-        description='Returns documents owned by the authenticated user, plus documents they are an active collaborator on.',
+        description='Returns documents owned by the authenticated user, plus documents they are an active collaborator on. Supports pagination via ?page=1&page_size=18',
+        parameters=[
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Page number (default: 1)'),
+            OpenApiParameter('page_size', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results per page (default: 18, max: 48)'),
+        ],
         responses={200: DocumentListSerializer(many=True)},
     ),
     retrieve=extend_schema(
@@ -55,6 +60,7 @@ User = get_user_model()
 )
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
+    pagination_class = DocumentPagination
 
     def get_serializer_class(self):
         if self.action == "list":
