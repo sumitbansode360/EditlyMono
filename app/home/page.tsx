@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { DocumentList } from "@/components/documents/Home/DocumentList";
@@ -12,14 +11,7 @@ import { useDocuments } from "@/context/DocumentContext";
 function Home() {
   const router = useRouter();
   const { logout, isAuthenticated, user } = useUser();
-  const { documents, fetchDocs, isLoading, error } = useDocuments();
-  
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchDocs();
-    }
-  }, [isAuthenticated, fetchDocs]);
+  const { isLoading, error } = useDocuments();
 
   const login = () => {
     router.push("/login");
@@ -60,7 +52,7 @@ function Home() {
             <p className="text-sm opacity-90">{error}</p>
           </div>
         ) : (
-          <DocumentList documents={documents} />
+          <DocumentList />
         )}
       </div>
     </>

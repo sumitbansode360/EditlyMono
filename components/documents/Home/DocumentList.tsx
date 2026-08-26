@@ -12,22 +12,19 @@ import { DocumentGrid } from "./DocumentGrid";
 import { DocumentListItem } from "./DocumentListItem";
 import { DocumentViewToggle } from "./DocumentViewToggle";
 import { EmptyDocuments } from "./EmptyDocuments";
+import { Pagination } from "@/components/ui/pagination";
 
 import { DocumentListItem as DocType } from "@/types/document";
 import { toast } from "sonner";
-
-type Props = {
-  documents: DocType[];
-};
+import { useDocuments } from "@/context/DocumentContext";
 
 const VIEW_STORAGE_KEY = "editly_doc_view_pref";
 
-export function DocumentList({
-  documents,
-}: Props) {
+export function DocumentList() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [view, setView] = useState<"grid" | "list">("grid");
+  const { documents, pagination, setPage, setPageSize, isLoading } = useDocuments();
 
   // Industry Method: Handle persistence in useEffect to avoid hydration mismatch
   useEffect(() => {
@@ -60,7 +57,7 @@ export function DocumentList({
     }
   };
 
-  if (documents.length === 0) {
+  if (documents.length === 0 && !isLoading) {
     return <EmptyDocuments onCreate={handleCreateDocument} isCreating={isCreating} />;
   }
 
@@ -130,6 +127,18 @@ export function DocumentList({
           ))}
         </div>
       )}
+
+      {/* PAGINATION */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        pageSize={pagination.pageSize}
+        hasNext={pagination.hasNext}
+        hasPrevious={pagination.hasPrevious}
+        isLoading={isLoading}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </section>
   );
 }

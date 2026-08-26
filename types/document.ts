@@ -29,10 +29,30 @@ export interface UpdateDocumentRequest {
   content?: any;
 }
 
+export interface PaginatedDocumentsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: DocumentListItem[];
+}
+
+export interface PaginationState {
+  count: number;
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 export interface DocumentContextType {
   documents: DocumentListItem[];
-  fetchDocs: () => Promise<void>;
+  pagination: PaginationState;
+  fetchDocs: (page?: number, pageSize?: number) => Promise<void>;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
   isLoading: boolean;
   error: string | null;
   refreshDocuments: () => Promise<void>;
+  resetDocuments: () => void;
 }

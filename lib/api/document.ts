@@ -4,15 +4,21 @@ import {
   DocumentListItem,
   CreateDocumentRequest,
   UpdateDocumentRequest,
+  PaginatedDocumentsResponse,
 } from "@/types/document";
 
 /**
  * Fetches a list of documents owned by the current user.
- * Returns an array of DocumentListItem (summary view).
+ * Returns a paginated response with document list items.
  */
-export const getDocuments = async (): Promise<DocumentListItem[]> => {
+export const getDocuments = async (
+  page: number = 1,
+  pageSize: number = 18
+): Promise<PaginatedDocumentsResponse> => {
   try {
-    const response = await api.get<DocumentListItem[]>("/api/documents/");
+    const response = await api.get<PaginatedDocumentsResponse>("/api/documents/", {
+      params: { page, page_size: pageSize }
+    });
     return response.data;
   } catch (error: any) {
     throw new Error(
