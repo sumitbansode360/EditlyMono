@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { DocumentList } from "@/components/documents/Home/DocumentList";
+import { SearchBar } from "@/components/documents/Home/SearchBar";
 import Navbar from "@/components/Navbar";
 import { useUser } from "@/context/UserContext";
 import { useDocuments } from "@/context/DocumentContext";
@@ -26,7 +27,12 @@ function Home() {
 
   return (
     <>
-      <Navbar onLogout={logout} onLogin={login} user={userDetails} />
+      <Navbar 
+        onLogout={logout} 
+        onLogin={login} 
+        user={userDetails} 
+        searchComponent={<SearchBar />}
+      />
       <div className="mx-auto max-w-7xl px-6 py-12">
         {/* Page Header */}
         <section className="mb-10">

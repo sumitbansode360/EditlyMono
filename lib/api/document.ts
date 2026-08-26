@@ -115,3 +115,22 @@ export const deleteDocument = async (id: string): Promise<void> => {
     );
   }
 };
+
+/**
+ * Searches documents by title or owner name.
+ * @param query - Search query (minimum 3 characters)
+ */
+export const searchDocuments = async (
+  query: string
+): Promise<{ results: Array<{ id: string; title: string; owner_name: string; created_at: string; updated_at: string }> }> => {
+  try {
+    const response = await api.get("/api/documents/search/", {
+      params: { q: query }
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.detail || "Failed to search documents"
+    );
+  }
+};

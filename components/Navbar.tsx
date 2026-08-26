@@ -39,6 +39,7 @@ type NavbarProps = {
   onProfileClick?: () => void;
   onLogin?: () => void;
   onLogout?: () => void;
+  searchComponent?: React.ReactNode;
 };
 
 export default function Navbar({
@@ -50,6 +51,7 @@ export default function Navbar({
   onSearch,
   onLogin,
   onLogout,
+  searchComponent,
 }: NavbarProps) {
   const router = useRouter();
 
@@ -71,15 +73,17 @@ export default function Navbar({
 
         {/* CENTER SEARCH */}
         <div className="hidden max-w-2xl flex-1 md:flex">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search documents..."
-              className="h-10 rounded-xl pl-10 shadow-sm"
-              onChange={(e) => onSearch?.(e.target.value)}
-            />
-          </div>
+          {searchComponent || (
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search documents..."
+                className="h-10 rounded-xl pl-10 shadow-sm"
+                onChange={(e) => onSearch?.(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
         {/* RIGHT SIDE */}
@@ -161,16 +165,18 @@ export default function Navbar({
 
       {/* MOBILE SEARCH */}
       <div className="border-t px-4 py-2 md:hidden">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {searchComponent || (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
-          <Input
-            type="text"
-            placeholder="Search documents..."
-            className="pl-10"
-            onChange={(e) => onSearch?.(e.target.value)}
-          />
-        </div>
+            <Input
+              type="text"
+              placeholder="Search documents..."
+              className="pl-10"
+              onChange={(e) => onSearch?.(e.target.value)}
+            />
+          </div>
+        )}
       </div>
     </header>
   );
