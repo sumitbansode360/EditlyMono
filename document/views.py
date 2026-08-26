@@ -2,14 +2,17 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import get_object_or_404
+from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from .models import Document, DocumentCollaboration
 from .serializers import (
     DocumentSerializer,
     DocumentListSerializer,
+    DocumentSearchSerializer,
     CollaborationInviteSerializer,
     CollaborationSerializer,
 )
@@ -172,6 +175,48 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=['Documents'],
+        summary='Search documents',
+        description='Search documents by title or owner name. Returns top 5 matching documents accessible to the user.',
+        parameters=[
+            OpenApiParameter('q', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Search query (min 3 characters)', required=True),
+        ],
+        responses={200: DocumentSearchSerializer(many=True)},
+    )
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        query = request.query_params.get('q', '').strip()
+        
+        if not query or len(query) < 3:
+            return Response(
+                {"detail": "Search query must be at least 3 characters long."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = request.user
+        
+        # Search in title and owner name, limited to user's accessible documents
+        owned_docs = Document.objects.filter(
+            Q(title__icontains=query) |
+            Q(owner__first_name__icontains=query) |
+            Q(owner__last_name__icontains=query),
+            owner=user
+        ).select_related("owner")
+        
+        shared_docs = Document.objects.filter(
+            Q(title__icontains=query) |
+            Q(owner__first_name__icontains=query) |
+            Q(owner__last_name__icontains=query),
+            collaborators__user=user,
+            collaborators__status=DocumentCollaboration.Status.ACTIVE
+        ).select_related("owner")
+        
+        results = owned_docs.union(shared_docs)[:5]
+        
+        serializer = DocumentSearchSerializer(results, many=True, context={'request': request})
+        return Response({"results": serializer.data})
 
 
 @extend_schema_view(

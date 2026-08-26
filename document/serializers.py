@@ -114,3 +114,22 @@ class DocumentListSerializer(serializers.ModelSerializer):
             user=request.user, status=DocumentCollaboration.Status.ACTIVE
         ).first()
         return collab.role if collab else None
+
+
+class DocumentSearchSerializer(serializers.ModelSerializer):
+    owner_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Document
+        fields = [
+            "id",
+            "title",
+            "owner_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.CharField())
+    def get_owner_name(self, obj):
+        return f"{obj.owner.first_name} {obj.owner.last_name}"
