@@ -1,0 +1,20 @@
+# Base image
+FROM node:22-alpine
+
+# Working directory inside container
+WORKDIR /app
+
+# Copy dependency files first (better Docker cache)
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy remaining project files
+COPY . .
+
+# WebSocket server listens on port 1234
+EXPOSE 1234
+
+# Start development server
+CMD ["npm", "run", "dev"]
