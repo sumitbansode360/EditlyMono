@@ -1,0 +1,163 @@
+services:
+
+  postgres:
+    image: postgres:16
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - editly-network
+
+  redis:
+    image: redis:7-alpine
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - editly-network
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile.dev
+
+    env_file:
+      - ./Backend/.env
+
+    environment:
+      - ALLOWED_HOSTS=localhost,backend
+
+    volumes:
+      - ./Backend:/app
+      - ./Backend/media:/app/media
+      - ./Backend/staticfiles:/app/staticfiles
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    networks:
+      - editly-network
+
+  celery:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile.dev
+
+    command: celery -A core worker --loglevel=info
+
+    env_file:
+      - ./Backend/.env
+
+    volumes:
+      - ./Backend:/app
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - editly-network
+
+  websocket:
+    build:
+      context: ./WebSocket
+      dockerfile: Dockerfile.dev
+
+    volumes:
+      - ./WebSocket:/app
+      - /app/node_modules
+
+    ports:
+      - "1234:1234"
+    
+    env_file:
+      - ./WebSocket/.env
+
+    restart: unless-stopped
+
+    networks:
+      - editly-network
+  
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.dev
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+
+    env_file:
+      - ./Frontend/.env.docker
+
+    restart: unless-stopped
+
+    networks:
+      - editly-network
+
+  nginx:
+    build:
+      context: ./Nginx
+      args:
+        NGINX_CONFIG: nginx.conf
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      - frontend
+      - backend
+      - websocket
+
+    restart: unless-stopped
+
+    networks:
+      - editly-network
+
+networks:
+  editly-network:
+    driver: bridge
+
+volumes:
+  postgres-data:

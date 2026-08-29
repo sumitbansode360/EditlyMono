@@ -1,0 +1,11 @@
+﻿.env
+**/.env.production
+**/.env.local
+node_modules/
+__pycache__/
+*.pyc
+.next/
+db.sqlite3
+staticfiles/
+media/
+.pytest_cache/
