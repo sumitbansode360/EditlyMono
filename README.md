@@ -40,7 +40,8 @@ Once you have the file, drop it in a `docs/` or `assets/` folder in the repo and
 ![Live collaborative editing](./docs/live-editing-demo.gif)
 -->
 
-![Live collaborative editing](./docs/Editlygif.gif)
+![Live collaborative editing](./Editlygif.gif)
+
 ---
 
 ## ✨ Features
