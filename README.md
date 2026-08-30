@@ -4,11 +4,11 @@
 
 A real-time collaborative document editor built for teams to write, organize, and manage documents together — with live multi-cursor editing, presence indicators, and role-based document sharing.
 
-🔗 **Live demo:** [https://editly-app.duckdns.org](https://editly-app.duckdns.org)
+**Live demo:** [https://editly-app.duckdns.org](https://editly-app.duckdns.org)
 
 ---
 
-## 🧪 Try It Yourself
+## Try It Yourself
 
 Two demo accounts are set up so you can see real-time collaboration without creating your own account:
 
@@ -27,7 +27,7 @@ Two demo accounts are set up so you can see real-time collaboration without crea
 
 ---
 
-## 🎬 Screenshots & Demo
+## Demo
 
 <!--
 Add a short GIF here showing live-cursor sync in action — this is the single highest-impact
@@ -44,7 +44,7 @@ Once you have the file, drop it in a `docs/` or `assets/` folder in the repo and
 
 ---
 
-## ✨ Features
+## Features
 
 - **Real-time collaborative editing** — powered by [Yjs](https://github.com/yjs/yjs) CRDTs, so multiple people can edit the same document simultaneously with automatic, conflict-free merging
 - **Live presence & cursors** — see who's online in a document right now, and where their cursor is, as they type
@@ -56,7 +56,7 @@ Once you have the file, drop it in a `docs/` or `assets/` folder in the repo and
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Editly runs as seven containerized services behind a single Nginx reverse proxy, orchestrated with Docker Compose.
 
@@ -94,7 +94,7 @@ graph TD
 
 ---
 
-## 🧰 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -109,7 +109,7 @@ graph TD
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 This is a monorepo containing all four services, each independently containerized:
 
@@ -124,7 +124,7 @@ editly/
 
 ---
 
-## 🚀 Running Locally
+## Running Locally
 
 ```bash
 git clone https://github.com/sumitbansode360/EditlyMono.git
@@ -136,7 +136,7 @@ Requires Docker and Docker Compose. See `.env.example` for required environment 
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 - **Single-instance deployment** — the app runs on one EC2 instance with no horizontal scaling or load balancing; the WebSocket server in particular would need a shared pub/sub layer (e.g. Redis adapter) to run multiple instances behind a load balancer.
 - **AWS Free Tier window** — the current EC2 instance is on the 6-month free tier; after that, hosting will move to a paid instance or a cheaper always-free alternative.
@@ -145,12 +145,12 @@ Requires Docker and Docker Compose. See `.env.example` for required environment 
 
 ---
 
-## 📌 Notes on This Deployment
+## Notes on This Deployment
 
 This project is deployed on a single AWS EC2 instance with a hand-configured, self-renewing TLS setup — a two-phase Let's Encrypt bootstrap (HTTP-01 challenge via Nginx webroot, followed by a Certbot-issued certificate mounted into Nginx), with automatic renewal via cron. No managed proxy (e.g. Cloudflare) sits in front of it — encryption is genuinely end-to-end to the origin server.
 
 ---
 
-## 📄 License
+## License
 
 MIT — free to use, modify, and reuse.
