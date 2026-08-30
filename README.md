@@ -40,8 +40,7 @@ Once you have the file, drop it in a `docs/` or `assets/` folder in the repo and
 ![Live collaborative editing](./docs/live-editing-demo.gif)
 -->
 
-*GIF coming soon — showing two users editing the same document with live cursor sync.*
-
+![Live collaborative editing](./docs/Editlygif.gif)
 ---
 
 ## ✨ Features
