@@ -14,8 +14,8 @@ Two demo accounts are set up so you can see real-time collaboration without crea
 
 | Role | Email | Password |
 |---|---|---|
-| Owner (Account A) | `TBD` | `TBD` |
-| Collaborator (Account B) | `TBD` | `TBD` |
+| Owner (Account A) | `fullersexton@yopmail.com` | `Code@123` |
+| Collaborator (Account B) | `eaganbush@yopmail.com` | `Code@123` |
 
 **Suggested walkthrough:**
 1. Log in as **Account A** in one browser tab, and **Account B** in a private/incognito window (or a second browser).
