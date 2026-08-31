@@ -3,6 +3,7 @@
 import React, { createContext, useState, useCallback, useMemo, useEffect } from "react";
 import { getDocuments } from "@/lib/api/document";
 import { DocumentListItem, DocumentContextType, PaginationState } from "@/types/document";
+import { useUser } from "./UserContext";
 
 const DocContext = createContext<DocumentContextType | undefined>(undefined);
 
@@ -10,6 +11,7 @@ const PAGE_SIZE_STORAGE_KEY = "editly_page_size_pref";
 const DEFAULT_PAGE_SIZE = 18;
 
 export const DocProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useUser();
   const [documents, setDocuments] = useState<DocumentListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,12 +48,10 @@ export const DocProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [count, currentPage, pageSize]);
 
-  // Fetch documents when page or pageSize changes
+  // Fetch documents when page, pageSize, or auth state changes
   useEffect(() => {
     const loadDocuments = async () => {
-      // Check if user is authenticated
-      const hasToken = localStorage.getItem('refresh_token');
-      if (!hasToken) {
+      if (!isAuthenticated) {
         setDocuments([]);
         setCount(0);
         setIsLoading(false);
@@ -72,8 +72,7 @@ export const DocProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     loadDocuments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, isAuthenticated]);
 
   // Reset state when authentication changes (handled by refreshDocuments)
   const refreshDocuments = useCallback(async () => {
