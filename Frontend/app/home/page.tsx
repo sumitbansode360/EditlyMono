@@ -37,7 +37,7 @@ function Home() {
         {/* Page Header */}
         <section className="mb-10">
           <h1 className="text-3xl font-semibold tracking-tight">
-            Welcome back, {user?.first_name}
+            Welcome Namste back, {user?.first_name}
           </h1>
 
           <p className="mt-2 text-sm text-muted-foreground">
